@@ -12,7 +12,7 @@ MODEL = "gpt-3.5-turbo"
 def count_tokens(text):
     return len(word_tokenize(text))
 
-def split_content(content, max_tokens=800):
+def split_content(content, max_tokens=1000):
     sentences = sent_tokenize(content)
     chunks = []
     chunk = ""
@@ -30,18 +30,28 @@ def split_content(content, max_tokens=800):
         chunks.append(chunk)
     return chunks
 
+from urllib.parse import urlparse
+
 def insert_keywords_links(chunk, main_keyword, secondary_keywords, internal_url):
     secondary_keywords = secondary_keywords.split(',')
-    urls = internal_url.split(',')
-    random.shuffle(urls)
-    url_counter = 0
+    urls = [url.strip() for url in internal_url.split(',')]
+    url_keywords = []
+
+    for url in urls:
+        path = urlparse(url).path  # Get path from URL
+        path_keywords = path.strip('/').replace('-', ' ')  # Replace dashes with spaces
+        url_keywords.append((path_keywords, url))
+
+    for keyword, url in url_keywords:
+        if keyword in chunk:
+            chunk = chunk.replace(keyword, f"<a href='{url}'>{keyword}</a>", 1)
+            
     for keyword in secondary_keywords:
-        if keyword in chunk and url_counter < len(urls):
-            chunk = chunk.replace(keyword, f"<a href='{urls[url_counter]}'>{keyword}</a>", 2)
-            url_counter += 1
-    if url_counter < len(urls):
-        chunk = chunk.replace(main_keyword, f"<a href='{urls[url_counter]}'>{main_keyword}</a>", 1)
+        if keyword in chunk:
+            chunk = chunk.replace(keyword, f"<a href='{urls[0]}'>{keyword}</a>", 2)
+
     return chunk
+
 styles = ['Creative', 'Formal', 'Informal', 'Academic', 'Conversational', 'Persuasive', 'Descriptive', 'Instructional', 'Amazon Review', 'Amazon Guide']
 selected_style = st.selectbox('Chọn Kiểu Viết', styles)
 
@@ -77,8 +87,8 @@ def generate_rewritten_chunks(content, main_keywords, secondary_keywords, intern
             system_message = "You are an expert on Amazon, providing detailed and helpful guides on how to use its services."
 
         messages = [{'role': 'system', 'content': system_message},
-                    {'role': 'user', 'content': f"Rewrite the following text using the primary keyword {main_keywords} in the H2 tag and the secondary keyword {secondary_keywords} in the H3 tag. Write in Markdown format. Try to write longer and use the {selected_language} language :\n\n{chunk}"}]
-        response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.7, max_tokens=2048)
+                    {'role': 'user', 'content': f"Please completely rewrite the following text, ensuring that the main ideas are retained. Use the primary keyword {main_keywords} in the H2 tag and the secondary keyword {secondary_keywords} in the H3 tag. Write in Markdown format, try to expand the content and use the {selected_language} language :\n\n{chunk}"}]
+        response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.8, max_tokens=2048)
         output = response.choices[0].message["content"]
         output = insert_keywords_links(output, main_keywords, secondary_keywords, internal_url)
         rewritten_chunks.append({section_title: output})
