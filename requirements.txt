@@ -3,3 +3,5 @@ streamlit
 python-docx
 markdownify
 nltk==3.5
+newspaper3k
+
