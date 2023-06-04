@@ -6,7 +6,7 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 nltk.download('punkt')
 
 # Set up OpenAI API
-openai.api_key = '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'
+openai.api_key = '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'
 
 # Function to count tokens (approximate)
 def count_tokens(text):
