@@ -64,16 +64,17 @@ if st.button('Viết Lại'):
     if chunk:
         chunks.append(chunk)
 
-    for chunk in chunks:
+    for i, chunk in enumerate(chunks):
         # Use the OpenAI API to rewrite the chunk
         response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": f"Viết lại đoạn văn bản sau bằng cách sử dụng từ khóa chính {main_keywords} trong thẻ H2 và từ khóa phụ {secondary_keywords} trong thẻ H3. Sử dụng danh xưng {selected_pronoun}. viết theo định dạng Markdown . Cố gắng viết dài hơn "},
-            {"role": "user", "content": chunk}
-        ],
-        temperature=0.7
-    )
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": f"Rewrite the following text using the primary keyword {main_keywords} in the H2 tag and the secondary keyword {secondary_keywords} in the H3 tag. Use the title {selected_pronoun}. written in Markdown format. Try to write longer and use the {selected_language} language."},
+                {"role": "user", "content": chunk}
+            ],
+            temperature=0.7
+        )
 
         rewritten_chunk = response['choices'][0]['message']['content']
+        st.write(f"Phần {i+1}:")
         st.write(rewritten_chunk)
