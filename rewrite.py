@@ -1,7 +1,7 @@
 import openai
 from nltk.tokenize import sent_tokenize, word_tokenize
 import streamlit as st
-import random
+from urllib.parse import urlparse
 
 # Replace 'your-openai-api-key' with your actual OpenAI API key
 openai.api_key = st.text_input("API Key")
@@ -25,12 +25,9 @@ def split_content(content, max_tokens=1000):
             chunks.append(chunk)
             chunk = sentence
             word_count = count_tokens(sentence)
-    # Don't forget to add the last chunk
     if chunk:
         chunks.append(chunk)
     return chunks
-
-from urllib.parse import urlparse
 
 def insert_keywords_links(chunk, main_keyword, secondary_keywords, internal_url):
     secondary_keywords = secondary_keywords.split(',')
@@ -38,27 +35,24 @@ def insert_keywords_links(chunk, main_keyword, secondary_keywords, internal_url)
     url_keywords = []
 
     for url in urls:
-        path = urlparse(url).path  # Get path from URL
-        path_keywords = path.strip('/').replace('-', ' ')  # Replace dashes with spaces
+        path = urlparse(url).path
+        path_keywords = path.strip('/').replace('-', ' ')
         url_keywords.append((path_keywords, url))
 
     for keyword, url in url_keywords:
-        if keyword in chunk:
+        if keyword in chunk and chunk.count(url) < 1:
             chunk = chunk.replace(keyword, f"<a href='{url}'>{keyword}</a>", 1)
             
     for keyword in secondary_keywords:
-        if keyword in chunk:
-            chunk = chunk.replace(keyword, f"<a href='{urls[0]}'>{keyword}</a>", 2)
+        if keyword in chunk and chunk.count(urls[0]) < 1:
+            chunk = chunk.replace(keyword, f"<a href='{urls[0]}'>{keyword}</a>", 1)
 
     return chunk
 
 styles = ['Creative', 'Formal', 'Informal', 'Academic', 'Conversational', 'Persuasive', 'Descriptive', 'Instructional', 'Amazon Review', 'Amazon Guide']
 selected_style = st.selectbox('Chọn Kiểu Viết', styles)
-
-# Convert selected style to lowercase and replace spaces with underscores
 selected_style = selected_style.lower().replace(" ", "_")
 
-# Then, in your generate_rewritten_chunks function
 def generate_rewritten_chunks(content, main_keywords, secondary_keywords, internal_url, style):
     chunks = split_content(content)
     rewritten_chunks = []
@@ -87,37 +81,25 @@ def generate_rewritten_chunks(content, main_keywords, secondary_keywords, intern
             system_message = "You are an expert on Amazon, providing detailed and helpful guides on how to use its services."
 
         messages = [{'role': 'system', 'content': system_message},
-                    {'role': 'user', 'content': f"Please completely rewrite the following text, ensuring that the main ideas are retained. Use the primary keyword {main_keywords} in the H2 tag and the secondary keyword {secondary_keywords} in the H3 tag. Write in Markdown format, try to expand the content and use the {selected_language} language :\n\n{chunk}"}]
+                    {'role': 'user', 'content': f"Please completely rewrite the text below, making sure that the main ideas are retained. Use the primary keyword `{main_keywords}` under the H2 heading and the secondary keyword `{secondary_keywords}` under the H3 heading. Write in Markdown format, and try to expand the content to be longer than the original. Write in {selected_language}.\n\n## {main_keywords}\n\n{chunk}"}]
+
         response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.8, max_tokens=2048)
         output = response.choices[0].message["content"]
         output = insert_keywords_links(output, main_keywords, secondary_keywords, internal_url)
         rewritten_chunks.append({section_title: output})
     return rewritten_chunks
 
-
-
 def rewrite_content(content, main_keywords, secondary_keywords, internal_url, style):
-    # Call generate_rewritten_chunks with the additional style parameter
     rewritten_chunks = generate_rewritten_chunks(content, main_keywords, secondary_keywords, internal_url, style)
     return " ".join([chunk[list(chunk.keys())[0]] for chunk in rewritten_chunks])
 
-# Form for content
 content = st.text_area('Điền Nội Dung Cần Viết Lại', '')
-
-# Select language
 languages = ['Vietnamese', 'English', 'Lao', 'Thai', 'Filipino']
 selected_language = st.selectbox('Chọn Ngôn Ngữ Viết Lại', languages)
-
-# Enter main and secondary keywords
 main_keywords = st.text_input('Điền Từ Khoá Chính', '')
 secondary_keywords = st.text_input('Từ khoá phụ , cách nhau dấu phẩy', '')
-
-
-# Enter internal URL
 internal_url = st.text_input('Điền Link Internal, cách nhau bởi dấu phẩy ', '')
-
 
 if st.button('Viết Lại'):
     rewritten_content = rewrite_content(content, main_keywords, secondary_keywords, internal_url, selected_style)
-
     st.write(rewritten_content)
