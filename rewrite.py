@@ -4,7 +4,7 @@ import streamlit as st
 import random
 
 # Replace 'your-openai-api-key' with your actual OpenAI API key
-openai.api_key = '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'
+openai.api_key = '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'
 
 MODEL = "gpt-3.5-turbo"
 
