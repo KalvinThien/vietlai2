@@ -33,7 +33,7 @@ def split_content(content, max_tokens=1000):
 
 def insert_keywords_links(chunk, main_keyword, secondary_keywords, internal_url):
     secondary_keywords = secondary_keywords.split(',')
-    urls = [url.strip() for url in internal_url.split(',')]
+    urls = [url.strip() for url in internal_url.split(',') if url.strip() != ''] # Added condition to ignore empty URLs
     url_keywords = []
 
     for url in urls:
@@ -46,14 +46,13 @@ def insert_keywords_links(chunk, main_keyword, secondary_keywords, internal_url)
             chunk = chunk.replace(keyword, f"<a href='{url}'>{keyword}</a>", 1)
             
     for keyword in secondary_keywords:
-        if keyword in chunk and chunk.count(urls[0]) < 1:
+        if keyword in chunk and urls and chunk.count(urls[0]) < 1:
             chunk = chunk.replace(keyword, f"<a href='{urls[0]}'>{keyword}</a>", 1)
 
-    if urls:
-        for url in urls:
-            chunk += f"\n<a href='{url}'>{urlparse(url).path.strip('/').replace('-', ' ')}</a>"
 
     return chunk
+
+
 
 def title_with_number(title):
     number_list = list(range(1,100))
@@ -111,12 +110,25 @@ def rewrite_content(content, main_keywords, secondary_keywords, internal_url, st
     rewritten_content = " ".join([chunk[list(chunk.keys())[0]] for chunk in rewritten_chunks])
 
     # Add internal URLs at the end of the content if they exist
-    urls = [url.strip() for url in internal_url.split(',')]
-    if urls[0] != '':
+    urls = [url.strip() for url in internal_url.split(',') if url.strip() != ''] # Added condition to ignore empty URLs
+    if urls:
         for url in urls:
             rewritten_content += f"\n<a href='{url}'>{urlparse(url).path.strip('/').replace('-', ' ')}</a>"
     
     return rewritten_content
+def generate_faq(content):
+    system_message = "You are an intelligent AI that can generate insightful Frequently Asked Questions and their corresponding answers based on the provided content."
+    user_message = f"Generate 5 pairs of Frequently Asked Questions and their Answers based on the following content: \n\n{content}"
+
+    messages = [{'role': 'system', 'content': system_message}, {'role': 'user', 'content': user_message}]
+    response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.7, max_tokens=1000) # Increase max_tokens to have room for answers
+
+    faq_pairs = response.choices[0].message["content"].split('\n\n') # Split by two newline characters to separate questions and answers
+    faq_list = []
+    for faq_pair in faq_pairs:
+        if faq_pair.strip() != '':
+            faq_list.append(faq_pair.strip().split('\n')) # Split by one newline character to separate a question from its answer
+    return faq_list[:5]  # Limit to
 
 
 content = st.text_area('Điền Nội Dung Cần Viết Lại', '')
@@ -125,7 +137,18 @@ selected_language = st.selectbox('Chọn Ngôn Ngữ Viết Lại', languages)
 main_keywords = st.text_input('Điền Từ Khoá Chính', '')
 secondary_keywords = st.text_input('Từ khoá phụ , cách nhau dấu phẩy', '')
 internal_url = st.text_input('Điền Link Internal, cách nhau bởi dấu phẩy ', '')
+faq_option = st.checkbox('Tạo 5 câu hỏi thường gặp hay không?')
 
 if st.button('Viết Lại'):
     rewritten_content = rewrite_content(content, main_keywords, secondary_keywords, internal_url, selected_style)
+
+    # Generate FAQs if the option is selected
+    if faq_option:
+        faqs = generate_faq(rewritten_content)
+        faq_section = "\n## FAQ \n"
+        for i, faq_pair in enumerate(faqs):
+            question, answer = faq_pair[0], faq_pair[1] if len(faq_pair) > 1 else 'loading....'
+            faq_section += f"\n### {i+1}: {question}\n\n: {answer}\n"
+        rewritten_content += faq_section
+
     st.write(rewritten_content)
