@@ -16,7 +16,7 @@ MODEL = "gpt-3.5-turbo"
 def count_tokens(text):
     return len(word_tokenize(text))
 
-def split_content(content, max_tokens=1000):
+def split_content(content, max_tokens=700):
     sentences = sent_tokenize(content)
     chunks = []
     chunk = ""
