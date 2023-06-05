@@ -127,7 +127,7 @@ def generate_faq(content):
     user_message = f"Generate 5 pairs of Frequently Asked Questions and their Answers based on the following content: \n\n{content}"
 
     messages = [{'role': 'system', 'content': system_message}, {'role': 'user', 'content': user_message}]
-    response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.7, max_tokens=1000) # Increase max_tokens to have room for answers
+    response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.7, max_tokens=500) # Increase max_tokens to have room for answers
 
     faq_pairs = response.choices[0].message["content"].split('\n\n') # Split by two newline characters to separate questions and answers
     faq_list = []
