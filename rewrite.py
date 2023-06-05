@@ -8,8 +8,10 @@ from urllib.parse import urlparse
 
 nltk.download('punkt')
 
-openai.api_key = st.text_input("API Key")
-MODEL = "gpt-3.5-turbo"
+st.markdown("By [Nguyễn Ngọc Thiện](https://techreviews.vn)")
+st.markdown('---')
+openai.api_key = st.text_input("Điền API Key Chatgpt -   [Lấy API KEY ChatGPT Ở Đây](https://platform.openai.com/account/api-keys) --- Nếu Chưa Có? [Mua Tài Khoản Có Sẵn 120$](https://zalo.me/0888884749)", type='password')
+
 
 def count_tokens(text):
     return len(word_tokenize(text))
