@@ -51,15 +51,17 @@ def insert_keywords_links(chunk, main_keyword, secondary_keywords, internal_url)
 
 
     return chunk
-def title_with_number(title, main_keyword):
+
+
+
+def title_with_number(title):
     number_list = list(range(1,100))
     random.shuffle(number_list)
     number = number_list[0]
-    new_title = f"{number} {title} {main_keyword}" # Added main_keyword
+    new_title = f"{number} {title}"
     if len(new_title) > 60:
         new_title = new_title[:60]
     return new_title
-
 
 styles = ['Creative', 'Formal', 'Informal', 'Academic', 'Conversational', 'Persuasive', 'Descriptive', 'Instructional', 'Amazon Review', 'Amazon Guide']
 selected_style = st.selectbox('Chọn Kiểu Viết', styles)
@@ -70,9 +72,8 @@ def generate_rewritten_chunks(content, main_keywords, secondary_keywords, intern
     rewritten_chunks = []
     for i, chunk in enumerate(chunks):
         section_title = f"Section {i+1}"
-        section_title = title_with_number(section_title, main_keywords)
+        section_title = title_with_number(section_title)
 
-        
         if style == "creative":
             system_message = "You are an imaginative and creative writer."
         elif style == "formal":
@@ -94,42 +95,34 @@ def generate_rewritten_chunks(content, main_keywords, secondary_keywords, intern
         elif style == "amazon_guide":
             system_message = "You are an expert on Amazon, providing detailed and helpful guides on how to use its services."
 
-        messages = [{'role': 'system', 'content': system_message},
-                    {'role': 'user', 'content': f"Please completely rewrite the text below, making sure that the main ideas are retained. Use the primary keyword `{main_keywords}` under the H2 heading and the secondary keyword `{secondary_keywords}` under the H3 heading. Write in Markdown format, and try to expand the content to be longer than the original. Write in {selected_language}.\n\n{chunk}"}]
+        # Add SEO expertise to the system message
+        system_message += f" Also, you are a seasoned SEO expert with many years of experience, and a subject matter expert on {main_keywords}."
 
+        messages = [{'role': 'system', 'content': system_message},
+                    {'role': 'user', 'content': f"Please completely rewrite the text below, making sure that the main ideas are retained. Use the primary keyword `{main_keywords}` under the H2 heading and the secondary keyword `{secondary_keywords}` under the H3 heading. Write in Markdown format, and try to expand the content to be longer than the original. Write in {selected_language}.\n\n## {main_keywords}\n\n{chunk}"}]
 
         response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.8, max_tokens=2048)
         output = response.choices[0].message["content"]
-        # Comment out or remove the line below if you only want URLs at the end
-        # output = insert_keywords_links(output, main_keywords, secondary_keywords, internal_url)
+        output = insert_keywords_links(output, main_keywords, secondary_keywords, internal_url)
         output = output.replace(main_keywords, f"<b>{main_keywords}</b>", 1)
         rewritten_chunks.append({section_title: output})
     return rewritten_chunks
+
 
 def rewrite_content(content, main_keywords, secondary_keywords, internal_url, style):
     rewritten_chunks = generate_rewritten_chunks(content, main_keywords, secondary_keywords, internal_url, style)
     rewritten_content = " ".join([chunk[list(chunk.keys())[0]] for chunk in rewritten_chunks])
 
-    # Generate SEO Meta Description
-    seo_description = f"{rewritten_content[:155]}..." # Summary of the content, limited to around 160 characters
-
-    # Add SEO Meta Description at the beginning
-    rewritten_content = f"## {seo_description}\n\n{rewritten_content}"
-
     # Add internal URLs at the end of the content if they exist
     urls = [url.strip() for url in internal_url.split(',') if url.strip() != ''] # Added condition to ignore empty URLs
     if urls:
-        rewritten_content += "\n\n"
         for url in urls:
-            rewritten_content += f"<a href='{url}'>{urlparse(url).path.strip('/').replace('-', ' ')}</a>\n"
+            rewritten_content += f"\n<a href='{url}'>{urlparse(url).path.strip('/').replace('-', ' ')}</a>"
     
     return rewritten_content
-
-
-
 def generate_faq(content):
-    system_message = "You are an intelligent AI that can generate insightful Frequently Asked Questions and their corresponding answers based on the provided content "
-    user_message = f"Generate 5 pairs of Frequently Asked Questions and their Answers based on the following content: \n\n{content} "
+    system_message = "You are an intelligent AI that can generate insightful Frequently Asked Questions and their corresponding answers based on the provided content."
+    user_message = f"Generate 5 pairs of Frequently Asked Questions and their Answers based on the following content: \n\n{content}"
 
     messages = [{'role': 'system', 'content': system_message}, {'role': 'user', 'content': user_message}]
     response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.7, max_tokens=1000) # Increase max_tokens to have room for answers
@@ -159,7 +152,7 @@ if st.button('Viết Lại'):
         faq_section = "\n## FAQ \n"
         for i, faq_pair in enumerate(faqs):
             question, answer = faq_pair[0], faq_pair[1] if len(faq_pair) > 1 else 'loading....'
-            faq_section += f"\n### {question}\n\n {answer}\n"
+            faq_section += f"\n###  {question}\n\n {answer}\n"
         rewritten_content += faq_section
 
     st.write(rewritten_content)
