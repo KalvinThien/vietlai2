@@ -1,17 +1,16 @@
 import openai
 import nltk
+import random
+import re
 from nltk.tokenize import sent_tokenize, word_tokenize
 import streamlit as st
 from urllib.parse import urlparse
 
 nltk.download('punkt')
 
-# Replace 'your-openai-api-key' with your actual OpenAI API key
 openai.api_key = st.text_input("API Key")
-
 MODEL = "gpt-3.5-turbo"
 
-# Function to count tokens (approximate)
 def count_tokens(text):
     return len(word_tokenize(text))
 
@@ -50,7 +49,20 @@ def insert_keywords_links(chunk, main_keyword, secondary_keywords, internal_url)
         if keyword in chunk and chunk.count(urls[0]) < 1:
             chunk = chunk.replace(keyword, f"<a href='{urls[0]}'>{keyword}</a>", 1)
 
+    if urls:
+        for url in urls:
+            chunk += f"\n<a href='{url}'>{urlparse(url).path.strip('/').replace('-', ' ')}</a>"
+
     return chunk
+
+def title_with_number(title):
+    number_list = list(range(1,100))
+    random.shuffle(number_list)
+    number = number_list[0]
+    new_title = f"{number} {title}"
+    if len(new_title) > 60:
+        new_title = new_title[:60]
+    return new_title
 
 styles = ['Creative', 'Formal', 'Informal', 'Academic', 'Conversational', 'Persuasive', 'Descriptive', 'Instructional', 'Amazon Review', 'Amazon Guide']
 selected_style = st.selectbox('Chọn Kiểu Viết', styles)
@@ -61,7 +73,8 @@ def generate_rewritten_chunks(content, main_keywords, secondary_keywords, intern
     rewritten_chunks = []
     for i, chunk in enumerate(chunks):
         section_title = f"Section {i+1}"
-
+        section_title = title_with_number(section_title)
+        
         if style == "creative":
             system_message = "You are an imaginative and creative writer."
         elif style == "formal":
@@ -89,12 +102,22 @@ def generate_rewritten_chunks(content, main_keywords, secondary_keywords, intern
         response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.8, max_tokens=2048)
         output = response.choices[0].message["content"]
         output = insert_keywords_links(output, main_keywords, secondary_keywords, internal_url)
+        output = output.replace(main_keywords, f"<b>{main_keywords}</b>", 1)
         rewritten_chunks.append({section_title: output})
     return rewritten_chunks
 
 def rewrite_content(content, main_keywords, secondary_keywords, internal_url, style):
     rewritten_chunks = generate_rewritten_chunks(content, main_keywords, secondary_keywords, internal_url, style)
-    return " ".join([chunk[list(chunk.keys())[0]] for chunk in rewritten_chunks])
+    rewritten_content = " ".join([chunk[list(chunk.keys())[0]] for chunk in rewritten_chunks])
+
+    # Add internal URLs at the end of the content if they exist
+    urls = [url.strip() for url in internal_url.split(',')]
+    if urls[0] != '':
+        for url in urls:
+            rewritten_content += f"\n<a href='{url}'>{urlparse(url).path.strip('/').replace('-', ' ')}</a>"
+    
+    return rewritten_content
+
 
 content = st.text_area('Điền Nội Dung Cần Viết Lại', '')
 languages = ['Vietnamese', 'English', 'Lao', 'Thai', 'Filipino']
