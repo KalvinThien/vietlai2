@@ -1,7 +1,10 @@
 import openai
+import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
 import streamlit as st
 from urllib.parse import urlparse
+
+nltk.download('punkt')
 
 # Replace 'your-openai-api-key' with your actual OpenAI API key
 openai.api_key = st.text_input("API Key")
