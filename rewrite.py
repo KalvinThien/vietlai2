@@ -11,7 +11,7 @@ st.title("Rewrite content")
 st.markdown("By [Nguyễn Ngọc Thiện](https://techreviews.vn)")
 st.markdown('---')
 openai.api_key = st.text_input("Điền API Key Chatgpt -   [Lấy API KEY ChatGPT Ở Đây](https://platform.openai.com/account/api-keys) --- Nếu Chưa Có? [Mua Tài Khoản Có Sẵn 120$](https://zalo.me/0888884749)", type='password')
-
+MODEL = "gpt-3.5-turbo"
 
 def count_tokens(text):
     return len(word_tokenize(text))
