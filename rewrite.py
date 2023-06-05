@@ -107,7 +107,7 @@ def generate_rewritten_chunks(content, main_keywords, secondary_keywords, intern
         # Comment out or remove the line below if you only want URLs at the end
         # output = insert_keywords_links(output, main_keywords, secondary_keywords, internal_url)
         if i == 0: # only replace the main keyword in the first chunk
-            output = output.replace(main_keywords, f"<b>{main_keywords}</b>", 1)
+            output = output.replace(main_keywords, f"{main_keywords}", 1)
         rewritten_chunks.append({section_title: output})
     return rewritten_chunks
 
