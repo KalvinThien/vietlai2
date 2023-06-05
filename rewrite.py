@@ -159,7 +159,7 @@ if st.button('Viết Lại'):
         faq_section = "\n## FAQ \n"
         for i, faq_pair in enumerate(faqs):
             question, answer = faq_pair[0], faq_pair[1] if len(faq_pair) > 1 else 'loading....'
-            faq_section += f"\n### : {question}\n\n: {answer}\n"
+            faq_section += f"\n### {question}\n\n: {answer}\n"
         rewritten_content += faq_section
 
     st.write(rewritten_content)
