@@ -40,11 +40,6 @@ def generate_rewritten_chunks(content, main_keywords, secondary_keywords, intern
     chunks = split_content(content)
     rewritten_chunks = []
 
-    # Tạo H1 title và SEO Meta Description
-    h1_title = f"# {main_keywords}" # H1 title with main keyword
-    seo_description = f"SEO Meta Description: {main_keywords}" # SEO Meta Description with main keyword
-    rewritten_chunks.append({h1_title: "", seo_description: ""}) # Add H1 title and SEO Meta Description to the content
-
     for i, chunk in enumerate(chunks):
         secondary_keyword = secondary_keywords[i % len(secondary_keywords)] # cycle through secondary keywords
         section_title = f"## Section {i+1}: {secondary_keyword if i > 0 else main_keywords}" # ensure main keyword only appears in the first H2
