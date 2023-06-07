@@ -57,7 +57,7 @@ def generate_rewritten_chunks(content, main_keywords, secondary_keywords, intern
     return rewritten_chunks
 def generate_title_and_seo(main_keywords, style):
     # Tạo prompt
-    messages = [{'role': 'system', 'content': f"You are a {style}. Your task is to generate a H1 title and SEO Meta Description using the main keyword '{main_keywords}'. The title should be informative and engaging. The SEO Meta Description should describe the overall content of the article in a concise and appealing way."}]
+    messages = [{'role': 'system', 'content': f"You are a {style}. Your task is to generate a H1 title and SEO Meta Description using the main keyword '{main_keywords}'. The title should contain the main keyword, a positive or negative sentiment word, a power word, and a number. It should be informative and engaging. The SEO Meta Description should start with the main keyword and describe the overall content of the article in a concise and appealing way."}]
 
     # Gọi ChatGPT
     response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.8, max_tokens=120)
@@ -66,12 +66,10 @@ def generate_title_and_seo(main_keywords, style):
     output = response.choices[0].message["content"].split('\n')
 
     # Tạo H1 title và SEO Meta Description
-    h1_title = f"# {output[0]}\n" # H1 title
+    h1_title = f"{output[0]}\n" # H1 title
     seo_description = f"{output[1]}\n" # SEO Meta Description
 
     return h1_title, seo_description
-
-
 
 def rewrite_content(content, main_keywords, secondary_keywords, internal_url, style):
     rewritten_chunks = generate_rewritten_chunks(content, main_keywords, secondary_keywords, internal_url, style)
@@ -101,6 +99,50 @@ main_keywords = st.text_input('Điền Từ Khoá Chính', '')
 secondary_keywords = st.text_input('Từ khoá phụ, cách nhau bằng dấu phẩy', '')
 internal_url = st.text_input('Điền Link Internal, cách nhau bởi dấu phẩy', '')
 
+LSI_keywords = st.text_input('Điền từ khoá LSI, cách nhau bằng dấu phẩy', '')
+is_faq = st.checkbox('Bạn có muốn tạo 5 câu hỏi thường gặp không?', value = False)
+
+def generate_faq(main_keywords, style):
+    # Tạo prompt
+    messages = [{'role': 'system', 'content': f"You are a {style}. Your task is to generate five frequently asked questions (FAQs) and their answers relating to the topic '{main_keywords}'."}]
+
+    # Gọi ChatGPT
+    response = openai.ChatCompletion.create(model=MODEL, messages=messages, temperature=0.8, max_tokens=500)
+
+    # Lấy kết quả từ phản hồi của ChatGPT
+    output = response.choices[0].message["content"]
+
+    return output
+
+def rewrite_content_with_lsi(content, main_keywords, secondary_keywords, internal_url, style, LSI_keywords):
+    LSI_keywords = LSI_keywords.split(',')
+    random.shuffle(LSI_keywords) # shuffle LSI keywords for randomness
+
+    rewritten_chunks = generate_rewritten_chunks(content, main_keywords, secondary_keywords, internal_url, style)
+
+    # Gọi hàm để tạo H1 title và SEO Meta Description
+    h1_title, seo_description = generate_title_and_seo(main_keywords, style)
+
+    # Chuỗi bắt đầu với H1 title và SEO Meta Description
+    rewritten_content = h1_title + seo_description
+
+    # Thêm các phần viết lại vào nội dung
+    for i, chunk in enumerate(rewritten_chunks):
+        section_title = list(chunk.keys())[0]
+        section_content = chunk[section_title] + "\n"
+
+        # Inject LSI keyword into the content
+        lsi_keyword = LSI_keywords[i % len(LSI_keywords)] # cycle through LSI keywords
+        section_content = section_content.replace(main_keywords, main_keywords + " " + lsi_keyword, 1)
+
+        rewritten_content += section_title + "\n" + section_content
+
+    return rewritten_content
+
 if st.button('Viết Lại'):
-    rewritten_content = rewrite_content(content, main_keywords, secondary_keywords, internal_url, selected_style.lower())
+    rewritten_content = rewrite_content_with_lsi(content, main_keywords, secondary_keywords, internal_url, selected_style.lower(), LSI_keywords)
     st.markdown(rewritten_content)
+
+    if is_faq:
+        faq_content = generate_faq(main_keywords, selected_style.lower())
+        st.markdown(faq_content)
